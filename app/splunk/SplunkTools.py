@@ -77,10 +77,16 @@ class SplunkTools:
         :param event: The _json dictionary of the event
         :return: None
         """
-        event_details ={
-            "event": event,
-            "sourcetype": "_json"
-        }
+        event_details = {}
+        keys = ['time', 'source', 'host', 'sourcetype']
+
+        for key in keys:
+            if key in event:
+                event_details[key] = event[key]
+                del event[key]
+
+        event_details['event'] = event
+
         self.events.append(event_details)
 
     def __write_batched_event(self, events) -> bool:

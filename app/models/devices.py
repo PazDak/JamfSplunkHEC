@@ -2,6 +2,8 @@
 This Class holds the Device model classes
 """
 import json
+import datetime
+
 from abc import ABC, abstractmethod
 
 class device(ABC):
@@ -22,18 +24,24 @@ class JamfComputer(device):
     def set_from_uapi(self, details):
         self.details = details
 
-    def splunk_hec_events(self, meta_keys=[]):
-        print(meta_keys)
+    def splunk_hec_events(self, meta_keys=[], nameAsHost=True, timeAs="report"):
         thisDevice = self.details.copy()
         del_keys = ['fonts', 'services', 'packageReceipts', 'contentCaching', 'ibeacons', 'plugins','attachments']
         computer_meta = self.__build_splunk_meta(meta_keys=meta_keys)
-        print(json.dumps(computer_meta))
+
+        baseEvent = self.__extract_base_event(computer=thisDevice, timeAs=timeAs, nameAsHost=nameAsHost, source="jss_inventory")
+
         for key in del_keys:
             if key in thisDevice:
                 del thisDevice[key]
 
         splunk_events = []
 
+        # Create Contact Event
+        contact_event = self.__extract_contact_event(computer=thisDevice)
+        contact_event['computer_meta'] = computer_meta
+        print(json.dumps(contact_event))
+        splunk_events.append(contact_event)
         # Applications:
         apps = self.__extract_applications(computer=thisDevice)
         del thisDevice['applications']
@@ -95,9 +103,125 @@ class JamfComputer(device):
         ea, thisDevice = self.__extract_EAs(computer=thisDevice)
 
         s = json.dumps(thisDevice)
-        print(json.dumps(thisDevice, indent=2))
-        print(s.__len__())
-        return splunk_events
+
+        # Final Processing
+
+        ## General
+        event = {
+            "computerGeneral":thisDevice['general'],
+            'computer_meta': computer_meta
+        }
+        del thisDevice['general']
+        splunk_events.append(event)
+
+        ## DiskEncryption
+        event = {
+            "computerDiskEncryption": thisDevice['diskEncryption'],
+            'computer_meta': computer_meta,
+        }
+        del thisDevice['diskEncryption']
+        splunk_events.append(event)
+
+        ## Purchasing
+        event = {
+            'purchasing': thisDevice['purchasing'],
+            'computer_meta': computer_meta
+        }
+        del thisDevice['purchasing']
+        splunk_events.append(event)
+
+        ## userAndLocation
+        event = {
+            'userAndLocation': thisDevice['userAndLocation'],
+            'computer_meta': computer_meta
+        }
+        del thisDevice['userAndLocation']
+        splunk_events.append(event)
+
+        ## printers
+        event = {
+            'printers': thisDevice['printers'],
+            'computer_meta': computer_meta
+        }
+        del thisDevice['printers']
+        splunk_events.append(event)
+        ## hardware
+        event = {
+            "computerHardware": thisDevice['hardware'],
+            "computer_meta": computer_meta
+        }
+        del thisDevice['hardware']
+        splunk_events.append(event)
+
+        ## security
+        event = {
+            "computerSecurity": thisDevice['security'],
+            "computer_meta": computer_meta
+        }
+        del thisDevice['security']
+        splunk_events.append(event)
+
+        ## operatingSystem
+        event = {
+            'computerOS': thisDevice['operatingSystem'],
+            "computer_meta": computer_meta
+        }
+        del thisDevice['operatingSystem']
+        splunk_events.append(event)
+
+        ## licensedSoftware
+        event = {
+            'computerLicensedSoftware': thisDevice['licensedSoftware'],
+            'computer_meta': computer_meta
+        }
+        del thisDevice['licensedSoftware']
+        splunk_events.append(event)
+
+        ## softwareUpdates
+        event = {
+            'computerSoftwareUpdates': thisDevice['softwareUpdates'],
+            'computer_meta': computer_meta
+        }
+        del thisDevice['softwareUpdates']
+        splunk_events.append(event)
+
+        # Final Cleanup
+        del thisDevice
+        final_events = []
+        for event in splunk_events:
+            for key in baseEvent:
+                if key not in event:
+                    event[key] = baseEvent[key]
+            final_events.append(event)
+            pass
+        return final_events
+
+    def __extract_contact_event(self, computer):
+        time = datetime.datetime.strptime(computer['general']['lastContactTime'], "%Y-%m-%dT%H:%M:%S.%fZ").replace(
+            tzinfo=datetime.timezone.utc)
+        event = {
+            "source": "jssContact",
+            "time": time.timestamp(),
+            "event": "Device Contact Jamf Pro Server"
+        }
+
+        return event
+
+    def __extract_base_event(self, computer, timeAs, nameAsHost, source):
+        base_event = {
+            'source': source,
+            'sourcetype': "_json"
+        }
+
+        if nameAsHost:
+            base_event['host'] = computer['general']['name']
+        if timeAs == "report":
+            time = datetime.datetime.strptime(computer['general']['reportDate'], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=datetime.timezone.utc)
+            base_event['time'] = time.timestamp()
+        if timeAs == "contact":
+            time = datetime.datetime.strptime(computer['general']['reportDate'], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=datetime.timezone.utc)
+            base_event['lastContactTime'] = time.timestamp()
+        return base_event
 
     def __extract_applications(self, computer):
         applications = computer['applications']
