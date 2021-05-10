@@ -262,3 +262,6 @@ dmypy.json
 /files/computers/
 config.json
 .idea
+files/devices/
+files/
+/files/

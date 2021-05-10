@@ -10,8 +10,8 @@ from config import CONFIG
 
 class setup():
     def __init__(self):
-        self.settings = CONFIG
-
+        self.settings = CONFIG()
+        print(self.settings.settings)
 
     def writeConfig(self,settings: dict):
         self.settings.save_settings()
@@ -39,7 +39,8 @@ class setup():
                 'username': jss_username,
                 'password': jss_password
             }
-            print(json.dumps(jss))
+            self.settings.settings['jss'] = jss
+            self.settings.save_settings()
         pass
 
         if update_kinobi == "":
@@ -54,6 +55,8 @@ class setup():
                 "username": kinobi_username,
                 "password": kinobi_password
             }
+            self.settings.settings['kinobi'] = kinobi
+            self.settings.save_settings()
 
         if update_splunk == "":
             update_splunk = input("Update Splunk?")
@@ -62,8 +65,27 @@ class setup():
             splunk_url = input("Splunk HEC Endpoint: ")
             splunk_HEC_token = input("Splunk HEC Token: ")
             splunk = {
-                "hostname": "https://http-inputs-jamf.splunkcloud.com/services/collector/event",
-                "hec_token": "4051291E-2582-4F42-A761-29BC67214060"
+                "hostname": splunk_url,
+                "hec_token": splunk_HEC_token,
+                "hec_config": {
+                    "keys": ['supervised', 'managed', 'name', 'serial_number', 'udid', 'id', 'assigned_user',
+                             'department', 'building', 'room'],
+                    "timeAsReport": True,
+                    "timeAsContact": False,
+                    "hostAsSource": True,
+
+                }
             }
+            self.settings.settings['splunk'] = splunk
+            self.settings.save_settings()
+
+    def update_app(self):
+        default_settings = {
+            "time": 15,
+
+        }
+
+
 if __name__ == "__main__":
-    setup.main()
+    app = setup()
+    app.main()
