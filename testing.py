@@ -23,7 +23,7 @@ if __name__ == "__main__":
         splunk.add_event(event=event)
     with open("files/splunk_events.json" , "w+") as fp:
         fp.write(json.dumps(splunk.events, indent=2))
-    splunk.write_batch_events()
+    #splunk.write_batch_events()
 
     # Next Step is to rip apart the DISKs sections
 
