@@ -23,10 +23,11 @@ class JamfComputer(device):
 
     def set_from_uapi(self, details):
         self.details = details
+        self.computer_meta = self.get_computer_meta()
 
     def splunk_hec_events(self, meta_keys=[], nameAsHost=True, timeAs="report"):
         thisDevice = self.details.copy()
-        del_keys = ['fonts', 'services', 'packageReceipts', 'contentCaching', 'ibeacons', 'plugins','attachments']
+        del_keys = ['fonts', 'services', 'packageReceipts', 'contentCaching', 'ibeacons', 'plugins', 'attachments']
         computer_meta = self.__build_splunk_meta(meta_keys=meta_keys)
 
         baseEvent = self.__extract_base_event(computer=thisDevice, timeAs=timeAs, nameAsHost=nameAsHost, source="jss_inventory")
@@ -38,10 +39,11 @@ class JamfComputer(device):
         splunk_events = []
 
         # Create Contact Event
-        contact_event = self.__extract_contact_event(computer=thisDevice)
-        contact_event['computer_meta'] = computer_meta
-        print(json.dumps(contact_event))
-        splunk_events.append(contact_event)
+        # contact_event = self.__extract_contact_event(computer=thisDevice)
+        # contact_event['computer_meta'] = computer_meta
+        # print(json.dumps(contact_event))
+        # splunk_events.append(contact_event)
+
         # Applications:
         apps = self.__extract_applications(computer=thisDevice)
         del thisDevice['applications']
@@ -196,6 +198,33 @@ class JamfComputer(device):
             pass
         return final_events
 
+    def get_computer_meta(self):
+        """
+        Returns the Computer Meta
+        :return:
+        """
+        #ToDo Set this up to be configurable
+        keys = ['supervised', 'managed', 'name', 'serial_number', 'udid', 'id', 'assigned_user','department', 'building', 'room']
+        meta = self.__build_splunk_meta(meta_keys=keys)
+
+        try:
+            time = datetime.datetime.strptime(self.details['general']['lastContactTime'], "%Y-%m-%dT%H:%M:%S.%fZ").replace(
+                tzinfo=datetime.timezone.utc)
+        except:
+            time = datetime.datetime.strptime(self.details['general']['lastContactTime'],
+                                              "%Y-%m-%dT%H:%M:%SZ").replace(
+                tzinfo=datetime.timezone.utc)
+        meta['lastContactEpoch'] = time.timestamp()
+
+        try:
+            time = datetime.datetime.strptime(self.details['general']['reportDate'], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=datetime.timezone.utc)
+        except ValueError:
+            time = datetime.datetime.strptime(self.details['general']['reportDate'], "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
+
+        meta['lastReportEpoch'] = time.timestamp()
+
+        return meta
+
     def __extract_contact_event(self, computer):
         time = datetime.datetime.strptime(computer['general']['lastContactTime'], "%Y-%m-%dT%H:%M:%S.%fZ").replace(
             tzinfo=datetime.timezone.utc)
@@ -240,6 +269,9 @@ class JamfComputer(device):
         config_profiles = computer['configurationProfiles']
         del_keys = ["profileIdentifier",]
         config_profile_l = []
+        if config_profiles is None:
+            return config_profile_l
+
         for config_profile in config_profiles:
             # Delete Keys not needed
             for key in del_keys:
