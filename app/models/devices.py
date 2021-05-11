@@ -245,10 +245,18 @@ class JamfComputer(device):
         if nameAsHost:
             base_event['host'] = computer['general']['name']
         if timeAs == "report":
-            time = datetime.datetime.strptime(computer['general']['reportDate'], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=datetime.timezone.utc)
+            try:
+                time = datetime.datetime.strptime(computer['general']['reportDate'], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=datetime.timezone.utc)
+            except ValueError:
+                time = datetime.datetime.strptime(computer['general']['reportDate'], "%Y-%m-%dT%H:%M:%SZ").replace(
+                    tzinfo=datetime.timezone.utc)
             base_event['time'] = time.timestamp()
         if timeAs == "contact":
-            time = datetime.datetime.strptime(computer['general']['reportDate'], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=datetime.timezone.utc)
+            try:
+                time = datetime.datetime.strptime(computer['general']['reportDate'], "%Y-%m-%dT%H:%M:%S.%fZ").replace(tzinfo=datetime.timezone.utc)
+            except ValueError:
+                time = datetime.datetime.strptime(computer['general']['reportDate'], "%Y-%m-%dT%H:%M:%SZ").replace(
+                    tzinfo=datetime.timezone.utc)
             base_event['lastContactTime'] = time.timestamp()
         return base_event
 

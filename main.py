@@ -87,16 +87,17 @@ if __name__ == "__main__":
         # Application Start
 
         ## Jamf Pro Contact Events
-        #get_contact_events(app=thisApp, settings=settings.settings)
-        time.sleep(15)
+        get_contact_events(app=thisApp, settings=settings.settings)
+        print(f"finished Contact events at: {time.time()}")
         ## Jamf Pro Report Events
-        #get_report_events(app=thisApp, settings=settings.settings)
+        get_report_events(app=thisApp, settings=settings.settings)
+        print(f"finished Report events at: {time.time()}")
         print("cleaning up Application")
         del thisApp
         del settings
         endTime = time.time()
         print(endTime-startTime)
-        sleepTime = (15*60-int(endTime-startTime))
-        print(sleepTime)
-        print("closing application")
-        time.sleep(15*60)
+        sleepTime = (15*60-int(endTime-startTime)-15)
+        print(int(sleepTime))
+        print("Resetting Application and resting")
+        time.sleep(sleepTime)
