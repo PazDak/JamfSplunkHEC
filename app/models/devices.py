@@ -38,12 +38,6 @@ class JamfComputer(device):
 
         splunk_events = []
 
-        # Create Contact Event
-        # contact_event = self.__extract_contact_event(computer=thisDevice)
-        # contact_event['computer_meta'] = computer_meta
-        # print(json.dumps(contact_event))
-        # splunk_events.append(contact_event)
-
         # Applications:
         apps = self.__extract_applications(computer=thisDevice)
         del thisDevice['applications']

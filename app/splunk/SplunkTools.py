@@ -101,18 +101,18 @@ class SplunkTools:
 
         return False
 
-    def __write_batched_event_async(self, events) -> bool:
+    async def __write_batched_event_async(self, events) -> bool:
         """
         Writes a single batch of events
         :param events: Array of Events
         :return:
         """
 
-        response = requests.post(self.url, data=json.dumps(events), headers=self.headers)
-        if response.status_code == 200:
-            return True
+        async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as session:
+            for splunk_log in events:
 
-        return False
+                async with session.post(url=self.url, data=json.dumps(splunk_log), headers=self.headers) as resp:
+                    await resp.json()
 
     async def __async_posts_batch(self, splunk_logs: list) -> None:
         """
@@ -122,13 +122,11 @@ class SplunkTools:
         """
         async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as session:
             for splunk_log in splunk_logs:
-                DATA = {
-                    "event": splunk_log,
-                    "sourcetype": "_json"
-                }
 
-                async with session.post(url=self.url, data=json.dumps(DATA), headers=self.headers) as resp:
+
+                async with session.post(url=self.url, data=json.dumps(splunk_log), headers=self.headers) as resp:
                     await resp.json()
+                    print(resp.status)
 
 
     def write_batch_events(self, batch_size=100, sync=True) -> bool:
@@ -142,7 +140,10 @@ class SplunkTools:
         if sync:
             for events in events_l:
                 self.__write_batched_event(events=events)
+        else:
+            asyncio.run(self.__write_batched_event_async(events= events_l))
         self.events = []
+
         return True
 
     def get_events(self, chunk=0):

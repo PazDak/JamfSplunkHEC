@@ -30,7 +30,7 @@ def get_contact_events(app, settings):
     for event in events:
         splunk.add_event(event)
     print(f"Contact Events: {splunk.get_events().__len__()}")
-    splunk.write_batch_events()
+    splunk.write_batch_events(sync=False)
 
 def get_report_events(app, settings):
     settings['app']['collection']['reportEvents']['enabled']
@@ -69,7 +69,8 @@ def get_report_events(app, settings):
     for event in events:
         splunk.add_event(event)
     print(f"Report Events: {splunk.get_events().__len__()}")
-    splunk.write_batch_events()
+    splunk.write_batch_events(sync=False)
+
 
 if __name__ == "__main__":
 
@@ -79,25 +80,32 @@ if __name__ == "__main__":
 
     run_app = True
     while run_app:
-        startTime = time.time()
-        settings = CONFIG()
-        thisApp = app.APP(settings=settings.settings)
+        try:
+            startTime = time.time()
+            settings = CONFIG()
+            thisApp = app.APP(settings=settings.settings)
 
-        print("running Application")
-        # Application Start
+            print("running Application")
+            # Application Start
 
-        ## Jamf Pro Contact Events
-        get_contact_events(app=thisApp, settings=settings.settings)
-        print(f"finished Contact events at: {time.time()}")
-        ## Jamf Pro Report Events
-        get_report_events(app=thisApp, settings=settings.settings)
-        print(f"finished Report events at: {time.time()}")
-        print("cleaning up Application")
-        del thisApp
-        del settings
-        endTime = time.time()
-        print(endTime-startTime)
-        sleepTime = (15*60-int(endTime-startTime)-15)
-        print(int(sleepTime))
-        print("Resetting Application and resting")
-        time.sleep(sleepTime)
+            ## Jamf Pro Contact Events
+            get_contact_events(app=thisApp, settings=settings.settings)
+            print(f"finished Contact events at: {time.time()}")
+            ## Jamf Pro Report Events
+            get_report_events(app=thisApp, settings=settings.settings)
+            print(f"finished Report events at: {time.time()}")
+            print("cleaning up Application")
+            del thisApp
+            del settings
+            endTime = time.time()
+            print(endTime-startTime)
+            sleepTime = (15*60-int(endTime-startTime)-15)
+            print(int(sleepTime))
+            print("Resetting Application and resting")
+            if sleepTime < 0:
+                sleepTime = 0
+            time.sleep(sleepTime)
+        except:
+            sleepTime = 14*60
+            print("sleeping, ran into a problem. Full Tear Down")
+            time.sleep(sleepTime)
