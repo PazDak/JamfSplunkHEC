@@ -1,5 +1,5 @@
 import json
-import datetime
+from datetime import datetime, timedelta, timezone
 import logging
 import requests
 import time
@@ -25,8 +25,8 @@ class JamfPro:
         @staticmethod
         def unix_timestamp():
             """Returns a UTC Unix timestamp for the current time"""
-            epoch = epoch = datetime.datetime(1970, 1, 1)
-            now = datetime.datetime.utcnow()
+            epoch = datetime(1970, 1, 1)
+            now = datetime.utcnow()
             return (now - epoch).total_seconds()
 
         def headers(self, add=None):
@@ -119,6 +119,8 @@ class JamfPro:
         payload = ""
         response = requests.request("GET", url, headers=self.headers, data=payload)
         response_dict = json.loads(response.content)
+        if response.status_code !=200:
+            print(response.content)
         return response_dict
 
 
@@ -138,12 +140,53 @@ class JamfPro:
         return response_dict
 
     def _filter_computer(self, filters={}, computer={})-> bool:
+        """
+        Returns if to include the computer or not
+        :param filters: Dictionary of the Filters for a Device
+        :param computer: UAPI Computer Details
+        :return: Boolean, Reason for False
+        """
+        # Device Managed
         if 'managed' in filters:
             if computer['general']['remoteManagement']['managed'] != filters['managed']['value']:
-                return False
-        return True
+                return False, "notManaged"
 
-    def _build_url(self, sections=[], page_number=1, page_size=200, endpoint=""):
+        # Last Contact
+        if 'lastContactTime' in filters:
+            try:
+                computerTime = datetime.strptime(computer['general']['lastContactTime'], "%Y-%m-%dT%H:%M:%S.%fZ")
+            except ValueError:
+                computerTime = datetime.strptime(computer['general']['lastContactTime'], "%Y-%m-%dT%H:%M:%SZ")
+
+            testTime = datetime.strptime(filters['lastContactTime']['value'], "%Y-%m-%dT%H:%M:%S.%fZ")
+
+            if filters['lastContactTime']['operator'] == '>':
+                if computerTime > testTime:
+                    pass
+                else:
+                    return False, "contactTimeBoundary"
+
+        # Last Report
+        if 'lastReportTime' in filters:
+            try:
+                if computer['general']['reportDate'] == None:
+                    return False, "NoReportDate"
+                computerTime = datetime.strptime(computer['general']['reportDate'], "%Y-%m-%dT%H:%M:%S.%fZ")
+            except ValueError:
+                computerTime = datetime.strptime(computer['general']['reportDate'], "%Y-%m-%dT%H:%M:%SZ")
+
+            testTime = datetime.strptime(filters['lastReportTime']['value'], "%Y-%m-%dT%H:%M:%S.%fZ")
+
+            if filters['lastReportTime']['operator'] == '>':
+                if computerTime > testTime:
+                    pass
+                else:
+                    return False, "reportTimeBoundary"
+
+        # Base Case, Never got a False
+        return True, None
+
+    def _build_url(self, sections=[], page_number=1, page_size=200, endpoint="", sortKey=""):
         response = self.url
         response = response + endpoint
         section_s = "?"
@@ -154,9 +197,11 @@ class JamfPro:
                 section_s = section_s + f"&section={section}"
         response = response + section_s
         response = response + f"&page={page_number}&page-size={page_size}"
+        if sortKey != "":
+            response = response + sortKey
         return response
 
-    def getAllComputers(self, filters: dict, sections: list):
+    def getAllComputers(self, filters: dict, sections: list, sortKey:str):
         endpoint = "uapi/v1/computers-inventory"
         page_number = 0
         page_size = 200
@@ -164,7 +209,7 @@ class JamfPro:
         computers = []
 
         while another_page:
-            url = self._build_url(sections=sections, page_size=page_size, page_number=page_number, endpoint=endpoint)
+            url = self._build_url(sections=sections, page_size=page_size, page_number=page_number, endpoint=endpoint, sortKey=sortKey)
             print(url)
             p_computers = self._url_get_call(URL=url)['results']
             if p_computers.__len__() == 0:
@@ -172,8 +217,14 @@ class JamfPro:
                 another_page = False
             else:
                 for computer in p_computers:
-                    if self._filter_computer(filters=filters, computer=computer):
+                    addComputer, reason = self._filter_computer(filters=filters, computer=computer)
+                    if addComputer:
                         computers.append(computer)
+                    else:
+                        if reason == "contactTimeBoundary":
+                            another_page = False
+                        if reason == "reportTimeBoundary":
+                            another_page = False
 
                 page_number = page_number + 1
         return computers
@@ -192,8 +243,8 @@ class JamfPro:
             return response
 
     def getComputerApplicationUsage(self, jss_id=0, days=21, appName=""):
-        tod = datetime.datetime.now()
-        d = datetime.timedelta(days=days)
+        tod = datetime.now()
+        d = timedelta(days=days)
         a = tod - d
         start = a.strftime("%Y-%m-%d")
         end = tod.strftime("%Y-%m-%d")
