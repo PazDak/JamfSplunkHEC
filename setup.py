@@ -80,6 +80,9 @@ class setup():
             self.settings.save_settings()
 
     def update_app(self):
+        """
+        This is the setup script for this application
+        """
         default_settings = {
             "time": 15,
 
@@ -87,5 +90,6 @@ class setup():
 
 
 if __name__ == "__main__":
+
     app = setup()
     app.main()
