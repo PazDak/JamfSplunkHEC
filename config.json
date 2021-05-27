@@ -1,0 +1,33 @@
+{
+  "app": {
+    "freq_minutes": 15,
+    "runOnce": false,
+    "collection": {
+      "contactEvents": {
+        "enabled": false,
+        "minutes": 15
+      },
+      "reportEvents": {
+        "enabled": true,
+        "minutes": 15,
+        "fullInventory": true,
+      },
+      "alertEvents": [
+      ]
+    }
+  },
+  "jss": {
+    "hostname": "",
+    "password": "",
+    "username": ""
+  },
+  "kinobi": {
+    "hostname": "",
+    "password": "",
+    "username": ""
+  },
+  "splunk": {
+    "hostname": "",
+    "hec_token": ""
+  }
+}
