@@ -11,6 +11,7 @@
         "enabled": true,
         "minutes": 15,
         "fullInventory": true,
+        "removeKeys":[]
       },
       "alertEvents": [
       ]
@@ -22,11 +23,13 @@
     "username": ""
   },
   "kinobi": {
+    "enabled": false
     "hostname": "",
     "password": "",
     "username": ""
   },
   "splunk": {
+    "enabled": true
     "hostname": "",
     "hec_token": ""
   }
