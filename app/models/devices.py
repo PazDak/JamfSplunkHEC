@@ -20,6 +20,8 @@ class JamfComputer(device):
     """
     This is a model for a Jamf Computer
     """
+    details = {}
+    computer_meta = {}
 
     def set_from_uapi(self, details):
         self.details = details
@@ -30,7 +32,10 @@ class JamfComputer(device):
         del_keys = ['fonts', 'services', 'packageReceipts', 'contentCaching', 'ibeacons', 'plugins', 'attachments']
         computer_meta = self.__build_splunk_meta(meta_keys=meta_keys)
 
-        baseEvent = self.__extract_base_event(computer=thisDevice, timeAs=timeAs, nameAsHost=nameAsHost, source="jss_inventory")
+        baseEvent = self.__extract_base_event(computer=thisDevice,
+                                              timeAs=timeAs,
+                                              nameAsHost=nameAsHost,
+                                              source="jss_inventory")
 
         for key in del_keys:
             if key in thisDevice:
@@ -96,15 +101,19 @@ class JamfComputer(device):
             }
             splunk_events.append(event)
         # Extension Attributes
-        ea, thisDevice = self.__extract_EAs(computer=thisDevice)
+        eas, thisDevice = self.__extract_EAs(computer=thisDevice)
 
-        s = json.dumps(thisDevice)
-
+        for ea in eas:
+            event = {
+                'extensionAttribute': ea,
+                'computer_meta': computer_meta
+            }
+            splunk_events.append(event)
         # Final Processing
 
         ## General
         event = {
-            "computerGeneral":thisDevice['general'],
+            "computerGeneral": thisDevice['general'],
             'computer_meta': computer_meta
         }
         del thisDevice['general']
