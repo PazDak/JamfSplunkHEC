@@ -23,13 +23,13 @@
     "username": ""
   },
   "kinobi": {
-    "enabled": false
+    "enabled": false,
     "hostname": "",
     "password": "",
     "username": ""
   },
   "splunk": {
-    "enabled": true
+    "enabled": true,
     "hostname": "",
     "hec_token": ""
   }

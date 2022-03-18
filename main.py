@@ -1,129 +1,57 @@
-"""
-This Application will log to Splunk Computers that have inventoried in the previous time fram the previous time frame
-"""
-import json
-import glob
-import requests
-import time
-from datetime import datetime, timedelta, timezone
+class runJamfComputers():
+    class helper():
+        """
 
-import app
-from app.splunk import SplunkTools
+        """
+        def __init__(self):
+            pass
 
-from config import CONFIG
+        @staticmethod
+        def get_proxy():
+            return {}
 
-def get_contact_events(app, settings):
-    settings['app']['collection']['contactEvents']['enabled']
-    time_delta = settings['app']['collection']['contactEvents']['minutes']
-    time_s = datetime.now(timezone.utc) - timedelta(minutes=time_delta)
-    filters = {
-        'lastContactTime':{
-            'value': time_s.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-            'operator': '>'
-        }
-    }
-    sections = ['GENERAL', 'HARDWARE', 'USER_AND_LOCATION']
+        def send_http_request(self, url: str, method:str, headers:dict, use_proxy:bool):
+            pass
 
-    events = app.get_computer_contact_events(filters=filters, sections=sections)
-    splunk = SplunkTools.SplunkTools(host=settings['splunk']['hostname'],
-                                     splunk_token=settings['splunk']['hec_token'])
-    for event in events:
-        splunk.add_event(event)
-    print(f"Contact Events: {splunk.get_events().__len__()}")
-    splunk.write_batch_events(sync=False)
+        def get_arg(self, argKey:str, argDefault:str):
+            """
 
-def get_report_events(app, settings):
-    settings['app']['collection']['reportEvents']['enabled']
-    time_delta = settings['app']['collection']['reportEvents']['minutes']
-    time_s = datetime.now(timezone.utc) - timedelta(minutes=time_delta)
-    filters = {
-        'lastReportTime':{
-            'value': time_s.strftime("%Y-%m-%dT%H:%M:%S.%fZ"),
-            'operator': '>'
-        }
-    }
+            """
+            result = ""
 
-    allKeys = [
-        "GENERAL",
-        "DISK_ENCRYPTION",
-        "PURCHASING",
-        "APPLICATIONS",
-        "STORAGE",
-        "USER_AND_LOCATION",
-        "PRINTERS",
-        "HARDWARE",
-        "LOCAL_USER_ACCOUNTS",
-        "CERTIFICATES",
-        "SECURITY",
-        "OPERATING_SYSTEM",
-        "LICENSED_SOFTWARE",
-        "SOFTWARE_UPDATES",
-        "EXTENSION_ATTRIBUTES",
-        "GROUP_MEMBERSHIPS"
-    ]
+            return result
 
-    events = app.get_computer_report_events(filters=filters, sections=allKeys)
-    splunk = SplunkTools.SplunkTools(host=settings['splunk']['hostname'],
-                                     splunk_token=settings['splunk']['hec_token'])
+        def get_output_index(self):
+            """
 
-    for event in events:
-        splunk.add_event(event)
-    print(f"Report Events: {splunk.get_events().__len__()}")
+            """
 
-    splunk.write_batch_events(sync=False)
+        def new_event(self, data:str, source:str, time:int, host:str, sourcetype:str) -> dict:
+            newEvent = {'someEvent'}
+
+            return newEvent
 
 
-if __name__ == "__main__":
+    class ew():
+        """
+        This is the Event writer function
+        """
+        url = ""
+        token = ""
+        index = ""
+        sourcetype = ""
 
-    logs = []
-    print("setting up Application")
-    settings = CONFIG()
+        def __init__(self, splunkURL:str, splunkToken:str, splunkIndex:str, splunkSourceType: str):
+            self.url = splunkURL
+            self.token = splunkToken
+            self.index = splunkIndex
+            self.sourcetype = splunkSourceType
 
-    run_app = True
-    while run_app:
-        try:
-            startTime = time.time()
-            settings = CONFIG()
-            thisApp = app.APP(settings=settings.settings)
+        def write_event(self, event):
+            print(event)
 
-            print("running Application")
-            # Application Start
+    def __init__(self):
+        pass
 
-            ## Jamf Pro Contact Events
-            if settings.settings['app']['collection']['contactEvents']['enabled']:
-                print("Processing Contact Events")
-                get_contact_events(app=thisApp, settings=settings.settings)
-                print(f"finished Contact events at: {time.time()}")
-
-            ## Jamf Pro Report Events
-            if settings.settings['app']['collection']['reportEvents']:
-                print("Process Report Events")
-                get_report_events(app=thisApp, settings=settings.settings)
-                print(f"finished Report events at: {time.time()}")
-
-            ## Clean up
-            print("cleaning up Application")
-            if settings.settings['app']['runOnce']:
-                print("Run Once, Tear Down")
-                run_app = False
-            else:
-                print("preparing for next run")
-                freq = settings.settings['app']['freq_minutes']
-                del thisApp
-                del settings
-                endTime = time.time()
-                print(endTime-startTime)
-                sleepTime = (freq*60-int(endTime-startTime)-15)
-                print(int(sleepTime))
-                print("Resetting Application and resting")
-                if sleepTime < 0:
-                    sleepTime = 0
-                time.sleep(sleepTime)
-                print("sleeping, ran into a problem. Full Tear Down")
-        except:
-            print("Unrecoverable Error while running: ")
-            if settings.settings['app']['runOnce']:
-                run_app=False
-            else:
-                freq = settings.settings['app']['freq_minutes']
-                time.sleep(int(freq*60))
+    def run(self):
+        from app import jamfComputers
