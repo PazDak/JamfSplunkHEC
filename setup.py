@@ -10,6 +10,7 @@ from config import CONFIG
 
 class setup():
     def __init__(self):
+
         self.settings = CONFIG()
         print(self.settings.settings)
 
@@ -43,8 +44,6 @@ class setup():
 
         if update_splunk.lower() == "t":
             self.__update_splunk()
-
-
 
     def __update_app(self):
         """
@@ -139,7 +138,6 @@ class setup():
         }
         self.settings.settings['jss'] = jss
         self.settings.save_settings()
-        pass
 
 
 if __name__ == "__main__":
