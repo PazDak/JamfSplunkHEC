@@ -123,6 +123,17 @@ class JamfPro:
             'Authorization': self._authToken.header['Authorization'],
         }
 
+    @property
+    def getHeaders(self):
+        headers = {
+            'Accept': 'application/json',
+            'Authorization': self._authToken.token,
+            'User-Agent': 'SplunkBase_TA-Jamf-AddOn/2.10.6 modular/jamfDevices'
+
+        }
+        self._authToken.token
+        return headers
+
     def _url_get_call(self, URL=""):
         """
 

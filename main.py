@@ -1,3 +1,4 @@
+import requests
 class runJamfComputers():
     class helper():
         """
@@ -11,7 +12,9 @@ class runJamfComputers():
             return {}
 
         def send_http_request(self, url: str, method:str, headers:dict, use_proxy:bool):
-            pass
+            if method.lower() == "get":
+                response = requests.get(url=url, headers=headers)
+                return response
 
         def get_arg(self, argKey:str, argDefault:str):
             """
