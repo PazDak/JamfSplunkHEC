@@ -139,6 +139,10 @@ class setup():
         self.settings.settings['jss'] = jss
         self.settings.save_settings()
 
+    def __update_cve(self):
+        print("This is a Beta CVE service. Contact kyle.pazandak@jamf.com for access to the system")
+        jamfCVEUrl = input("Jamf CVE Feed URL")
+        jamfCVEToken = input("Jamf CVE Feed Token")
 
 if __name__ == "__main__":
     """

@@ -15,6 +15,9 @@ class runJamfComputers():
             if method.lower() == "get":
                 response = requests.get(url=url, headers=headers)
                 return response
+            if method.lower() == "post"
+                response = requests.post(url=url, headers=headers)
+                return response
 
         def get_arg(self, argKey:str, argDefault:str):
             """
@@ -58,3 +61,5 @@ class runJamfComputers():
 
     def run(self):
         from app import jamfComputers
+
+if __name__ == "__main__":
