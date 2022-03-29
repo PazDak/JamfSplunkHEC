@@ -15,7 +15,8 @@ class runJamfComputers():
             if method.lower() == "get":
                 response = requests.get(url=url, headers=headers)
                 return response
-            if method.lower() == "post"
+
+            if method.lower() == "post":
                 response = requests.post(url=url, headers=headers)
                 return response
 
