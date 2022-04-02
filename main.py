@@ -1,10 +1,10 @@
 import requests
 class runJamfComputers():
     class helper():
-        """
 
-        """
-        def __init__(self):
+        proxy = {}
+        outPutIndex = {}
+        def __init__(self, settings={}):
             pass
 
         @staticmethod
@@ -21,23 +21,18 @@ class runJamfComputers():
                 return response
 
         def get_arg(self, argKey:str, argDefault:str):
-            """
-
-            """
             result = ""
-
             return result
 
         def get_output_index(self):
-            """
-
-            """
+            return self.outPutIndex
 
         def new_event(self, data:str, source:str, time:int, host:str, sourcetype:str) -> dict:
             newEvent = {'someEvent'}
-
             return newEvent
 
+        def setArgs(self, newArgs):
+            self.args = newArgs
 
     class ew():
         """
@@ -61,7 +56,11 @@ class runJamfComputers():
         pass
 
     def run(self):
-        from app import jamfComputers
+        print("running")
+
 
 if __name__ == "__main__":
+    runner = runJamfComputers()
+    runner.run()
     pass
+

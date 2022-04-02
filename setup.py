@@ -4,9 +4,75 @@ This is a basic setup script to load the configurations for this application to 
 import getpass
 import json
 import os
-
+import re
+import validators
 from config import CONFIG
 
+requiredArgs = [
+    {
+        'name': 'jss_url',
+        'description': 'Jamf Pro URL',
+        'type': 'str',
+        'validators': ['weburl'],
+        'required': True,
+        'allowNull': False
+    },{
+        'name': 'jss_username',
+        'type': 'str',
+        'description': 'Jamf Pro Username',
+        'validators': [],
+        'required': True,
+        'allowNull': False
+    },{
+        'name': 'jss_password',
+        'type': 'password',
+        'description': 'Jamf Pro Password',
+        'validators': [],
+        'required': True,
+        'allowNull': False
+    },{
+        'name': 'days_since_contact',
+        'type': 'int',
+        'description': 'Days Since Contact (0 = Infinity)',
+        'validators': ['int:Greater:0'],
+        'required': True,
+        'allowNull': False,
+        'default': 1
+    },{
+        'name': 'excludeNoneManaged',
+        'description': 'Exclude None Managed Devices',
+        'type': 'bool',
+        'validators': [],
+        'required': True,
+        'allowNull': False,
+        'default': True
+    },{
+        'name': 'host_as_device_name',
+        'type': 'bool',
+        'description': '',
+        'validators': [],
+        'required': True,
+        'allowNull': False,
+        'default': 'time_as_script'
+    },{
+        'name': 'event_time_format',
+        'type': "str",
+        'description': '',
+        'validators': ['eventTimeFormat'],
+        'required': True,
+        'allowNull': False
+    },{
+        'name': 'sections',
+        'type': 'list:checked',
+        'description': '',
+        'validators': ['computer:sections:contained'],
+        'required': True,
+        'allowNull': False,
+        'default': [{
+            'name', ''
+        }]
+    }
+]
 
 class setup():
     def __init__(self):
@@ -17,10 +83,8 @@ class setup():
     def writeConfig(self,settings: dict):
         self.settings.save_settings()
 
-
     def get_current_settings(self,) -> dict:
         return self.settings.settings
-
 
     def main(self, update_jss="", update_kinobi="", update_splunk= ""):
         """
@@ -144,9 +208,58 @@ class setup():
         jamfCVEUrl = input("Jamf CVE Feed URL")
         jamfCVEToken = input("Jamf CVE Feed Token")
 
+    def getStringField(self, inputDesc: str, validators: list) -> str:
+        herlperText = inputDesc + ": "
+        isValid = False
+        while not isValid:
+            value = input(herlperText)
+            isValid, reason = self.validateStringField(value, validators)
+            if not isValid:
+                print(reason)
+
+    def validateStringField(self, value, validator_l):
+        response = []
+        if validator_l.__len__() == 0:
+            return True, None
+        for validator in validator_l:
+            if validator == "weburl":
+                response.append(self.validatorWebURL(value))
+                aTest, Reason = self.validatorWebURL(value)
+                if not aTest:
+                    return aTest, Reason
+
+        if response.__len__() == 0:
+            return False, "Validators failed"
+
+        return True, None
+
+    def updateArgs(self):
+        args = {}
+        for requiredArg in requiredArgs:
+            if requiredArg['type'] == "str":
+                argValue = self.getStringField(inputDesc=requiredArg['description'], validators=requiredArg['validators'])
+                args[requiredArg['name']] = argValue
+
+
+    @staticmethod
+    def validatorWebURL(value):
+        if value.__contains__("https://"):
+            value = value.replace("https://","")
+        if value.__contains__("http://"):
+            value = value.replace("http://", "")
+
+        if value[:-1] == "/":
+            value = value[:-1]
+        if validators.domain(value):
+            return True, value
+        else:
+            print("invalid url type")
+            return False, value
+
+
 if __name__ == "__main__":
     """
     Main Run Function
     """
     app = setup()
-    app.main()
+    app.updateArgs()
