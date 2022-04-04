@@ -47,21 +47,6 @@ requiredArgs = [
         'allowNull': False,
         'default': True
     },{
-        'name': 'host_as_device_name',
-        'type': 'bool',
-        'description': '',
-        'validators': [],
-        'required': True,
-        'allowNull': False,
-        'default': 'time_as_script'
-    },{
-        'name': 'event_time_format',
-        'type': "str",
-        'description': '',
-        'validators': ['eventTimeFormat'],
-        'required': True,
-        'allowNull': False
-    },{
         'name': 'sections',
         'type': 'list:checked',
         'description': '',
@@ -73,6 +58,90 @@ requiredArgs = [
         }]
     }
 ]
+staticValues =[
+    {
+        'name': 'event_time_format',
+        'value': 'timeAsScript'
+    },
+    {
+        'name': 'host_as_device_name',
+        'value': True
+    }
+]
+allSections = [
+    {
+        'name': 'DISK_ENCRYPTION',
+        'displayName': 'Disk Encryption',
+        'default': False,
+        'description': ''
+     },    {
+        'name': 'PURCHASING',
+        'displayName': 'Purchasing',
+        'default': True,
+        'description': ''
+     },    {
+        'name': 'APPLICATIONS',
+        'displayName': 'Applications',
+        'default': True,
+        'description': ''
+     },    {
+        'name': 'Disk Information',
+        'displayName': 'STORAGE',
+        'default': False,
+        'description': ''
+     },    {
+        'name': 'PRINTERS',
+        'displayName': 'Printers',
+        'default': False,
+        'description': ''
+     },    {
+        'name': 'LOCAL_USER_ACCOUNTS',
+        'displayName': 'Local User Accounts',
+        'default': False,
+        'description': ''
+     },    {
+        'name': 'CERTIFICATES',
+        'displayName': 'Certificates',
+        'default': False,
+        'description': ''
+     },    {
+        'name': 'SECURITY',
+        'displayName': 'Security',
+        'default': True,
+        'description': ''
+     },    {
+        'name': 'OPERATING_SYSTEM',
+        'displayName': 'Operating System',
+        'default': True,
+        'description': ''
+     },    {
+        'name': 'LICENSED_SOFTWARE',
+        'displayName': 'Licensed Software',
+        'default': False,
+        'description': ''
+     },    {
+        'name': 'SOFTWARE_UPDATES',
+        'displayName': 'Software Updates',
+        'default': False,
+        'description': ''
+     },    {
+        'name': 'EXTENSION_ATTRIBUTES',
+        'displayName': 'Extension Attributes',
+        'default': True,
+        'description': ''
+     },    {
+        'name': 'GROUP_MEMBERSHIPS',
+        'displayName': 'Group Memberships',
+        'default': True,
+        'description': ''
+     },{
+        'name': 'HARDWARE',
+        'displayName': 'Hardware',
+        'default': True,
+        'description': ''
+     }
+]
+
 
 class setup():
     def __init__(self):
@@ -216,6 +285,49 @@ class setup():
             isValid, reason = self.validateStringField(value, validators)
             if not isValid:
                 print(reason)
+            if isValid:
+                return value
+
+    def getPasswordField(self,inputDesc: str, validators: list) -> str:
+        herlperText = inputDesc + ": "
+        isValid = False
+        while not isValid:
+            value = getpass.getpass(herlperText)
+            isValid, reason = self.validateStringField(value, validators)
+            if not isValid:
+                print(reason)
+            if isValid:
+                return value
+
+    def getIntField(self,inputDesc: str, validators: list) -> str:
+        herlperText = inputDesc + ": "
+        isValid = False
+        while not isValid:
+            value = input(herlperText)
+            isValid, reason = self.validateIntField(value, validators)
+            if not isValid:
+                print(reason)
+            if isValid:
+
+                return int(value)
+
+
+    def validateIntField(self, value, validator_l):
+        try:
+            value = int(value)
+        except ValueError:
+            return False, "Not a valid int"
+        response = []
+        if validator_l.__len__() == 0:
+            return True, None
+        for validator in validator_l:
+            if str(validator).__contains__("int:Greater:"):
+                if value >= 0:
+                    return True, None
+
+        if response.__len__() == 0:
+            return False, "Validators failed"
+        return True, None
 
     def validateStringField(self, value, validator_l):
         response = []
@@ -230,16 +342,28 @@ class setup():
 
         if response.__len__() == 0:
             return False, "Validators failed"
-
         return True, None
+
 
     def updateArgs(self):
         args = {}
+        for staticValue in staticValues:
+            args[staticValue['name']] = staticValue['value']
         for requiredArg in requiredArgs:
             if requiredArg['type'] == "str":
                 argValue = self.getStringField(inputDesc=requiredArg['description'], validators=requiredArg['validators'])
                 args[requiredArg['name']] = argValue
-
+            if requiredArg['type'] == "password":
+                argValue = self.getPasswordField(inputDesc=requiredArg['description'],
+                                               validators=requiredArg['validators'])
+                args[requiredArg['name']] = argValue
+            if requiredArg['type'] == "int":
+                argValue = self.getIntField(inputDesc=requiredArg['description'],
+                                               validators=requiredArg['validators'])
+                args[requiredArg['name']] = argValue
+        print(json.dumps(args))
+        self.settings.settings['args'] = args
+        self.settings.save_settings()
 
     @staticmethod
     def validatorWebURL(value):
