@@ -116,7 +116,7 @@ class JamfPro:
             self.useProxy = False
         else:
             self.useProxy = True
-        useProxy = False
+        self.useProxy = False
 
         self.headers = {
             'Accept': 'application/json',
@@ -465,7 +465,6 @@ def collect_events(helper, ew):
                     events = newComputer.splunk_hec_events(meta_keys=meta_keys,
                                                            nameAsHost=settings['eventWriter']['hostAsDeviceName'],
                                                            timeAs=timeAs)
-
                     for event in events:
                         writeEvent(event)
                 except:

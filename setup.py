@@ -1,6 +1,7 @@
 """
 This is a basic setup script to load the configurations for this application to launch
 """
+import copy
 import getpass
 import json
 import os
@@ -58,7 +59,7 @@ requiredArgs = [
         }]
     }
 ]
-staticValues =[
+staticValues = [
     {
         'name': 'event_time_format',
         'value': 'timeAsScript'
@@ -142,7 +143,6 @@ allSections = [
      }
 ]
 
-
 class setup():
     def __init__(self):
 
@@ -155,127 +155,13 @@ class setup():
     def get_current_settings(self,) -> dict:
         return self.settings.settings
 
-    def main(self, update_jss="", update_kinobi="", update_splunk= ""):
-        """
-        Main function for launching the Setup Script
-        :return:
-        """
-        if update_jss == "":
-            update_jss = input("Update JSS? T/F")
+    def updateSplunk(self):
+        splunkURL = input("Splunk URL")
+        splunkToken = input("Splunk HEC Token")
 
-        if update_jss.lower() == 't':
-            self.__update_jss()
-
-        if update_kinobi == "":
-            update_kinobi = input("Update Kinobi? T/F")
-
-        if update_kinobi.lower() == "t":
-            self.__update_kinobi()
-
-        if update_splunk == "":
-            update_splunk = input("Update Splunk?")
-
-        if update_splunk.lower() == "t":
-            self.__update_splunk()
-
-    def __update_app(self):
-        """
-        This is the setup script for this application
-        """
-        use_defaults = input("Use Defaults: T/F")
-        if use_defaults.lower() == "t":
-            app = {
-                "freq_minutes": 15,
-                "runOnce": False,
-                "checkPointDevices": False,
-                "collection": {
-                    "contactEvents": {
-                        "enabled": False,
-                    },
-                    "reportEvents": {
-                        "enabled": True,
-                        "fullInventory": True,
-                        "diffInventory": False,
-                        "processAlerts": False,
-                        "removeKeys": ['fonts', 'services', 'packageReceipts', 'contentCaching', 'ibeacons', 'plugins', 'attachments']
-                    },
-                    "alertEvents": [
-                    ]
-                }
-            }
-            self.settings.settings['app'] = app
-            self.settings.save_settings()
-            return None
-
-    def __update_splunk(self):
-        """
-        This function will Update settings for the Splunk HEC connector
-        """
-        enable_splunk = input("Enable Splunk: T/F")
-        if enable_splunk.lower() == "f":
-            self.settings.settings['splunk'] = {"enabled": False}
-            self.settings.save_settings()
-            return None
-
-        splunk_url = input("Splunk HEC Endpoint: ")
-        splunk_HEC_token = input("Splunk HEC Token: ")
-        splunk = {
-            "hostname": splunk_url,
-            "hec_token": splunk_HEC_token,
-            "hec_config": {
-                "keys": ['supervised', 'managed', 'name', 'serial_number', 'udid', 'id', 'assigned_user',
-                         'department', 'building', 'room'],
-                "timeAsReport": True,
-                "timeAsContact": False,
-                "hostAsSource": True,
-
-            }
-        }
-        self.settings.settings['splunk'] = splunk
+        self.settings.settings['splunk']['splunkURL'] = splunkURL
+        self.settings.settings['splunk']['splunkToken'] = splunkToken
         self.settings.save_settings()
-
-    def __update_kinobi(self):
-        """
-        This function is used for updating the Kinobi Configuration
-        """
-
-        enable_kinobi = input("Enable Kinobi: T/F")
-
-        if enable_kinobi.lower() == "f":
-            self.settings.settings['kinobi'] = {"enabled": False}
-            self.settings.save_settings()
-            return None
-
-        kinobi_url = input("Kinobi URL: ")
-        kinobi_username = input("Kinobi Username: ")
-        kinobi_password = getpass.getpass("Kinobi Password: ")
-        kinobi = {
-            "hostname": kinobi_url,
-            "username": kinobi_username,
-            "password": kinobi_password
-        }
-
-        self.settings.settings['kinobi'] = kinobi
-        self.settings.save_settings()
-
-    def __update_jss(self):
-
-        jss_url = input("JSS URL: ")
-        jss_username = input("JSS Username: ")
-        jss_password = getpass.getpass('JSS Password :')
-
-        jss = {
-            'hostname': jss_url,
-            'username': jss_username,
-            'password': jss_password
-        }
-        self.settings.settings['jss'] = jss
-        self.settings.save_settings()
-
-    def __update_cve(self):
-        print("This is a Beta CVE service. Contact kyle.pazandak@jamf.com for access to the system")
-        jamfCVEUrl = input("Jamf CVE Feed URL")
-        jamfCVEToken = input("Jamf CVE Feed Token")
 
     def getStringField(self, inputDesc: str, validators: list) -> str:
         herlperText = inputDesc + ": "
@@ -308,9 +194,107 @@ class setup():
             if not isValid:
                 print(reason)
             if isValid:
-
                 return int(value)
 
+    def getBoolField(self, inputDesc: str, validators: list) -> str:
+        herlperText = inputDesc + " (T/F): "
+        isValid = False
+        while not isValid:
+            value = input(herlperText)
+            isValid, reason = self.validateBoolField(value, validators)
+            if not isValid:
+                print(reason)
+            if isValid:
+                if value.lower() == "t":
+                    return True
+                if value.lower() == "f":
+                    return False
+
+    def getListField(self, inputDesc: str, validators: list):
+        class listFields():
+            fields = copy.deepcopy(allSections)
+            currentFields = []
+            def __init__(self):
+                pass
+
+            def removeAll(self):
+                self.currentFields = []
+                pass
+
+            def removeOne(self):
+                inputS = "Choices to delete, type response"
+                for currentField in self.currentFields:
+                    inputS += f"\n\t{currentField['name']}"
+                inputS += "\nSelection? "
+                choice = input(inputS)
+                newFields = []
+                foundMatch = False
+                for currentField in self.currentFields:
+                    if choice.upper() == currentField['name']:
+                        print(f"removing choice {choice.upper()}")
+                        foundMatch = True
+                    else:
+                        newFields.append(currentField)
+                if foundMatch:
+                    self.currentFields = newFields
+                else:
+                    print("Invalid Choice: Try Again")
+
+            def addAll(self):
+                results = []
+                for field in self.fields:
+                    results.append(field)
+                self.currentFields = results
+
+            def addOne(self):
+                pass
+
+            def addDefaults(self):
+                for field in self.fields:
+                    if field['default']:
+                        self.currentFields.append(field)
+
+            def getFields(self):
+                results = []
+                for currentField in self.currentFields:
+                    results.append(currentField['name'])
+                return results
+
+            def rootChoice(self):
+                done = False
+                while not done:
+                    print(self.getFields())
+                    choice = input("Add Defaults (D)\nAdd All (A)\nAdd One (a)\nRemove All (R)\nRemove One (r)\nChoice? ")
+                    validChoices = ['D', 'A', 'R', 'a', 'r']
+                    if choice in validChoices:
+
+                        if choice == "D":
+                            self.addDefaults(),
+                        if choice == "A":
+                            self.addAll()
+                        if choice == "a":
+                            self.addOne()
+                        if choice == "R":
+                            self.removeAll()
+                        if choice == "r":
+                            self.removeOne()
+
+                        anotherChoice = input("Repeat Choice? (T/F)")
+                        if anotherChoice.lower() == "f":
+                            done = True
+                    else:
+                        print("Invalid Response")
+                pass
+        fields = listFields()
+        fields.rootChoice()
+        return fields.getFields()
+
+    def validateBoolField(self, value, validator_l):
+        if value.lower() == "t":
+            return True, None
+        if value.lower() == "f":
+            return True, None
+        return False, "Not a Valid Bool"
 
     def validateIntField(self, value, validator_l):
         try:
@@ -339,28 +323,39 @@ class setup():
                 aTest, Reason = self.validatorWebURL(value)
                 if not aTest:
                     return aTest, Reason
-
         if response.__len__() == 0:
             return False, "Validators failed"
         return True, None
-
 
     def updateArgs(self):
         args = {}
         for staticValue in staticValues:
             args[staticValue['name']] = staticValue['value']
         for requiredArg in requiredArgs:
+            argValue = None
             if requiredArg['type'] == "str":
-                argValue = self.getStringField(inputDesc=requiredArg['description'], validators=requiredArg['validators'])
+                argValue = self.getStringField(inputDesc=requiredArg['description'],
+                                               validators=requiredArg['validators'])
                 args[requiredArg['name']] = argValue
             if requiredArg['type'] == "password":
                 argValue = self.getPasswordField(inputDesc=requiredArg['description'],
-                                               validators=requiredArg['validators'])
+                                                 validators=requiredArg['validators'])
                 args[requiredArg['name']] = argValue
             if requiredArg['type'] == "int":
                 argValue = self.getIntField(inputDesc=requiredArg['description'],
-                                               validators=requiredArg['validators'])
+                                            validators=requiredArg['validators'])
                 args[requiredArg['name']] = argValue
+            if requiredArg['type'] == "bool":
+                argValue = self.getBoolField(inputDesc=requiredArg['description'],
+                                             validators=requiredArg['validators'])
+                args[requiredArg['name']] = argValue
+            if requiredArg['type'] == "list:checked":
+                print("here")
+                argValue = self.getListField(inputDesc=requiredArg['description'],
+                                             validators=requiredArg['validators'])
+                args[requiredArg['name']] = argValue
+            if argValue is None:
+                print(requiredArg)
         print(json.dumps(args))
         self.settings.settings['args'] = args
         self.settings.save_settings()
@@ -386,4 +381,8 @@ if __name__ == "__main__":
     Main Run Function
     """
     app = setup()
-    app.updateArgs()
+    print("Setting up Modular Input:")
+    #app.updateArgs()
+    print("-----\nSetting Up Splunk")
+    app.updateSplunk()
+
