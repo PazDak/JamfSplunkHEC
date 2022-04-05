@@ -95,10 +95,15 @@ class SplunkTools:
         :param events: Array of Events
         :return:
         """
+        print(f"{self.url}, data={json.dumps(events)}, headers={self.headers}")
         response = requests.post(self.url, data=json.dumps(events), headers=self.headers)
+        print(response.status_code)
         if response.status_code == 200:
+            print("Valid Response")
+            print(response.content)
             return True
-
+        else:
+            print(response.content)
         return False
 
     async def __write_batched_event_async(self, events) -> bool:
@@ -110,9 +115,8 @@ class SplunkTools:
 
         async with aiohttp.ClientSession(connector=aiohttp.TCPConnector(verify_ssl=False)) as session:
             for splunk_log in events:
-
                 async with session.post(url=self.url, data=json.dumps(splunk_log), headers=self.headers) as resp:
-                    await resp.json()
+                    await resp
 
     async def __async_posts_batch(self, splunk_logs: list) -> None:
         """
@@ -128,7 +132,6 @@ class SplunkTools:
                     await resp.json()
                     print(resp.status)
 
-
     def write_batch_events(self, batch_size=100, sync=True) -> bool:
         """
         Writes the list of batch events in groups of the batch size. Careful about using A large Batch size AND Async
@@ -139,8 +142,10 @@ class SplunkTools:
         events_l = self.get_events(chunk=batch_size)
         if sync:
             for events in events_l:
+                print("Sync Line")
                 self.__write_batched_event(events=events)
         else:
+            print("not Sync")
             asyncio.run(self.__write_batched_event_async(events= events_l))
         self.events = []
 

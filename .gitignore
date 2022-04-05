@@ -266,3 +266,4 @@ files/devices/
 files/
 /files/
 app/device_checkpoint/files/
+config/*
