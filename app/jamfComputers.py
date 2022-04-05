@@ -3,13 +3,13 @@
 import json
 from datetime import datetime, timedelta, timezone
 import logging
-import base64
 
+import base64
 import time
 
-from uapiModels import devices
+from .uapiModels import devices
 
-# JamfPro
+
 
 class JamfPro:
     class JamfUAPIAuthToken(object):
@@ -116,23 +116,12 @@ class JamfPro:
             self.useProxy = False
         else:
             self.useProxy = True
-        self.useProxy = False
+        useProxy = False
 
         self.headers = {
             'Accept': 'application/json',
             'Authorization': self._authToken.header['Authorization'],
         }
-
-    @property
-    def getHeaders(self):
-        headers = {
-            'Accept': 'application/json',
-            'Authorization': self._authToken.token,
-            'User-Agent': 'SplunkBase_TA-Jamf-AddOn/2.10.6 modular/jamfDevices'
-
-        }
-        self._authToken.token
-        return headers
 
     def _url_get_call(self, URL=""):
         """
@@ -260,7 +249,10 @@ class JamfPro:
         try:
             p_computers = self._url_get_call(URL=url)['results']
         except KeyError:
+            print("error no computers")
             p_computers = []
+        except Exception as E:
+            print(E)
 
         for computer in p_computers:
             addComputer, reason = self._filter_computer(filters=filters, computer=computer)
@@ -397,6 +389,7 @@ def collect_events(helper, ew):
             source = "jssInventory"
 
         if index is not None:
+            print(thisEvent)
             event = helper.new_event(data=json.dumps(thisEvent, ensure_ascii=False), source=source, time=eventTime,
                                      host=host,
                                      sourcetype=sourcetype)
@@ -455,24 +448,19 @@ def collect_events(helper, ew):
 
     while notDone:
         theseComputers = getComputersPage(pageNumber=pageCount, jss=jamfPro)
+        print(theseComputers.__len__())
         if theseComputers.__len__() == 0:
+            print("No Computers")
             return None
         else:
             pageCount += 1
             for computer in theseComputers:
-                try:
-                    newComputer = devices.JamfComputer(computerDetails=computer, source="uapi")
-                    events = newComputer.splunk_hec_events(meta_keys=meta_keys,
-                                                           nameAsHost=settings['eventWriter']['hostAsDeviceName'],
-                                                           timeAs=timeAs)
-                    for event in events:
-                        writeEvent(event)
-                except:
-                    error_event = {
-                        "messages": "An error occured while processing a computer",
-                        "jss_id": computer['id'],
-                        "jss": settings['jamfSettings']['jssUrl'],
-                        "sourcetype": "jamf:jssInventory:errorCode"
-                    }
 
-                    writeEvent(error_event)
+                newComputer = devices.JamfComputer(computerDetails=computer, source="uapi")
+                events = newComputer.splunk_hec_events(meta_keys=meta_keys,
+                                                       nameAsHost=settings['eventWriter']['hostAsDeviceName'],
+                                                       timeAs=timeAs)
+
+                for event in events:
+                    writeEvent(event)
+

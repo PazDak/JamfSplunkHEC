@@ -86,8 +86,8 @@ allSections = [
         'default': True,
         'description': ''
      },    {
-        'name': 'Disk Information',
-        'displayName': 'STORAGE',
+        'name': 'STORAGE',
+        'displayName': 'Disk Information',
         'default': False,
         'description': ''
      },    {
@@ -382,7 +382,7 @@ if __name__ == "__main__":
     """
     app = setup()
     print("Setting up Modular Input:")
-    #app.updateArgs()
+    app.updateArgs()
     print("-----\nSetting Up Splunk")
     app.updateSplunk()
 
