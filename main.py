@@ -1,5 +1,7 @@
+import json
 import requests
 from config import CONFIG
+from app.splunk import SplunkTools
 
 class runJamfComputers():
     class helper():
@@ -38,7 +40,7 @@ class runJamfComputers():
             return self.outPutIndex
 
         def new_event(self, data:str, source:str, time:int, host:str, sourcetype:str) -> dict:
-            newEvent = {}
+            newEvent = {'event': json.loads(data), 'sourcetype': sourcetype}
             return newEvent
 
         def setArgs(self, newArgs):
@@ -53,12 +55,19 @@ class runJamfComputers():
         index = ""
         sourcetype = ""
 
+        events = []
+
         def __init__(self, splunkURL:str, splunkToken:str):
             self.url = splunkURL
             self.token = splunkToken
+            self.splunk = SplunkTools.SplunkTools(host=splunkURL, splunk_token=splunkToken)
 
         def write_event(self, event):
-            print(event)
+            self.splunk.add_event(event)
+
+        def writeEvents(self):
+            self.splunk.write_batch_events(batch_size=100, sync=True)
+
 
     def __init__(self):
         self.settings = CONFIG()
@@ -67,10 +76,13 @@ class runJamfComputers():
 
     def run(self):
         from app import jamfComputers
-        collector = jamfComputers.collect_events(helper=self.helper(settings=self.settings.settings['args']),
-                                                 ew=self.ew(splunkURL=self.settings.settings['splunk']['splunkURL'],
-                                                            splunkToken=self.settings.settings['splunk']['splunkToken']))
+        thisHelper = self.helper(settings=self.settings.settings['args'])
+        thisEW = self.ew(splunkURL=self.settings.settings['splunk']['splunkURL'],
+                                                            splunkToken=self.settings.settings['splunk']['splunkToken'])
 
+        collector = jamfComputers.collect_events(helper=thisHelper, ew=thisEW)
+        print(thisEW.events.__len__())
+        thisEW.writeEvents()
 
 if __name__ == "__main__":
     runner = runJamfComputers()
